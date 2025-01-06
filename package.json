@@ -2,7 +2,8 @@
   "name": "vs-code-npm-buttons",
   "displayName": "VS-Code-NPM-Buttons",
   "description": " A VS Code extension that generates a Tab of Buttons for each NPM Script in your Package.json file",
-  "version": "0.0.1",
+  "version": "1.0.0",
+  "publisher": "AlexandreDufresne-Nappert",
   "engines": {
     "vscode": "^1.96.0"
   },
@@ -17,7 +18,7 @@
     "commands": [
       {
         "command": "extension.showNpmScripts",
-        "title": "Show NPM Scripts"
+        "title": "NPM Buttons"
       }
     ]
   },

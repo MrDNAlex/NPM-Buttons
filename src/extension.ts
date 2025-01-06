@@ -1,113 +1,143 @@
 import * as vscode from 'vscode';
+import fs from 'fs';
 
 export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(
         vscode.commands.registerCommand('npm-scripts.showTab', () => {
 
-			console.log('registering Command');
-
+            // Create a Panel Object (New Tab)
             const panel = vscode.window.createWebviewPanel(
+                //Name of the Panel/Tab
                 'npmScripts',
                 'NPM Scripts',
                 vscode.ViewColumn.One,
-                {}
+                {
+                    //Very Important, Need to Enable Scripts
+                    enableScripts: true
+                }
             );
 
-			console.log('panel created');
-
-            //console.log(vscode.workspace.textDocuments);
-
+            //Get the Root Path of the Project that is Oppened, and then get the package.json file
             const rootPath = vscode.workspace.rootPath;
-
-
-            if (!rootPath) {
-                console.log('No root path');
-                
-
-                panel.webview.html = `
-                <!DOCTYPE html>
-                <html>
-                <body>
-                    <h1>NPM Scripts Not Found</h1>
-                    <h2>Open a Project with a Package.Json file to use the Extension</h2>
-                </body>
-                </html>
-                `;
-
-                return;
-
-            }
-
             const packageJson = rootPath + '/package.json';
 
-            console.log(`Hello : ${packageJson}`);
+            //Check if the package.json file exists, if not Display a Not Found Page
+            if (!fs.existsSync(packageJson)) {
+                console.log('No package json');
+                panel.webview.html = GetNotFoundPage();
+                vscode.window.showErrorMessage('No package.json file found');
+                return;
+            }
 
+            //Get Contents of the Scripts Body from the package.json file
             const scripts = require(packageJson).scripts;
 
+            //Define an Array of Buttons to be Displayed, Each Button is named after the Script
             let buttonsHtml = '';
             for (const [script, command] of Object.entries(scripts)) {
                 buttonsHtml += `<button onclick="runScript('${script}')">${script}</button>`;
             }
 
-			console.log("Buttons created");
+            try 
+            {
+                //Get the HTML Page with functionality for each Button
+                panel.webview.html = GetPageView(buttonsHtml);
 
-            panel.webview.html = `
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <style>
-                        button {
-                            margin: 5px;
-                            padding: 10px;
-                            font-size: 14px;
+                //Add a Message Listener to the Panel
+                panel.webview.onDidReceiveMessage(
+                    message => {
+                        //Check if the Message Command is runScript, if so, Run the Script
+                        if (message.command === 'runScript') {
+                            //Add a Info Popup box in the Bottom Right Corner saying the Script that is Run
+                            vscode.window.showInformationMessage(`Running script: ${message.script}`);
+
+                            //Create a Terminal Instance
+                            const terminal = vscode.window.createTerminal(`NPM Buttons: ${message.script}`);
+                            
+                            //Send the Command to the Terminal
+                            terminal.sendText(`npm run ${message.script}`);
+
+                            //Show the Terminal (Open it and make it Visible to the User)
+                            terminal.show();
                         }
-                    </style>
-                </head>
-                <body>
-                    <h1>NPM Scripts</h1>
-                    ${buttonsHtml}
-                    <script>
-                    vscode.window.showInformationMessage('Button Pressed');
-                        const vscode = acquireVsCodeApi();
-                        function runScript(script) {
-                            panel.webview.postMessage({ command: 'runScript', script: 'start' });
-                        }
-                    </script>
-                </body>
-                </html>
-            `;
-
-			console.log('html created');
-
-            vscode.window.showInformationMessage('NPM Scripts Tab Opened');
+                    },
+                    undefined,
+                    context.subscriptions
+                );
+            } catch (error) {
+                //Show the Error Page if something goes wrong
+                panel.webview.html = GetErrorPage();
+                vscode.window.showErrorMessage('An Error Occurred with the Extension');
+            }
             
-
-            panel.webview.onDidReceiveMessage(
-                message => {
-                    console.log('message received');
-
-                    console.log(message);
-
-                    console.log(message.command);
-
-                    if (message.command === 'runScript') {
-                        vscode.window.showInformationMessage(`Running script: ${message.script}`);
-                        const terminal = vscode.window.createTerminal(`NPM: ${message.script}`);
-                        terminal.sendText(`npm run ${message.script}`);
-                        terminal.show();
-                    }
-                },
-                undefined,
-                context.subscriptions
-            );
         })
     );
 
+    //Register the Command to Show the NPM Scripts
     context.subscriptions.push(
         vscode.commands.registerCommand('extension.showNpmScripts', () => {
             vscode.commands.executeCommand('npm-scripts.showTab');
         })
     );
+
 }
 
+//Function returning the HTML for the Not Found Page
+function GetNotFoundPage ()
+{
+    return `
+        <!DOCTYPE html>
+        <html>
+        <body>
+            <h1>NPM Scripts Not Found</h1>
+            <h2>Open a Project with a Package.Json file to use the Extension</h2>
+        </body>
+        </html>
+            `;
+}
+
+//Function returning the HTML for the Error Page
+function GetErrorPage ()
+{
+    return `
+        <!DOCTYPE html>
+        <html>
+        <body>
+            <h1>NPM Scripts Error</h1>
+            <h2>Something went wrong with the Extension</h2>
+        </body>
+        </html>
+            `;
+}
+
+//Function returning the HTML for the Regular Populated Page
+function GetPageView (buttonsHtml: string)
+{
+    return `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <style>
+                button {
+                    margin: 5px;
+                    padding: 10px;
+                    font-size: 14px;
+                }
+            </style>
+        </head>
+        <body>
+            <h1>NPM Scripts</h1>
+            ${buttonsHtml}
+            <script>
+                const vscode = acquireVsCodeApi();
+                function runScript(script) {
+                    vscode.postMessage({ command: 'runScript', script });
+                }
+            </script>
+        </body>
+        </html>
+            `;
+}
+
+// this method is called when your extension is deactivated
 export function deactivate() {}
