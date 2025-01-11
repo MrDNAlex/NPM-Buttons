@@ -1,8 +1,12 @@
 # NPM-Buttons
 A VS Code extension that generates a Tab of Buttons for each NPM Script in your Package.json file
 
+# Installation
 Install the Extension through Visual Studio Code Market Place by Searching "NPM-Buttons"
 
+![image](https://github.com/user-attachments/assets/d48b8842-f10d-4792-90a3-385d52aa22c1)
+
+# Usage
 Once Installed Open a Existing or New Project containing a Package.json File in the Root
 
 On your Keyboard press Ctrl + Shift + P to open the Command Palette
